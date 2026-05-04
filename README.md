@@ -32,9 +32,30 @@ npx @fugguri/mcp-remote-ops-init
 
 ### Глобально
 
+Один раз установил — пользуешься везде без `npx`.
+
 ```bash
 npm install -g github:Fugguri/mcp-remote-ops
-mcp-remote-ops-init /path/to/your/project
+
+# проверка
+which mcp-remote-ops-init     # должен показать путь к бинарю
+which mcp-remote-ops          # сам MCP-сервер
+
+# использование
+cd /any/your/project
+mcp-remote-ops-init           # интерактив, текущая папка
+# или с явным путём:
+mcp-remote-ops-init /path/to/another/project
+# или авто из .env, без вопросов:
+mcp-remote-ops-init --yes
+```
+
+При глобальной установке `prepare` хук собирает TS в `dist/` автоматически. Если `which mcp-remote-ops-init` ничего не показывает — проверь что `npm bin -g` в `$PATH`.
+
+Обновление до последней версии из GitHub:
+
+```bash
+npm install -g github:Fugguri/mcp-remote-ops      # просто переустановка тянет свежий main
 ```
 
 ### Опции CLI
