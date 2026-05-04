@@ -228,6 +228,37 @@ Tool в режиме `confirm` возвращает:
 
 Чтобы выполнить — `confirm_action` с этим `action_id`.
 
+## Ошибки
+
+Tools возвращают структурированные ошибки с подсказкой как чинить:
+
+```json
+{
+  "error": true,
+  "kind": "missing_credentials",
+  "message": "No credentials for server 'prod'. Need 'password' in secrets.yaml or env MCP_REMOTE_OPS_PROD_PASSWORD.",
+  "hint": "Set the env var or add to .mcp-remote-ops/secrets.yaml under 'prod'."
+}
+```
+
+Возможные `kind`:
+
+| Kind | Когда |
+|---|---|
+| `missing_credentials` | Нет ни yaml, ни env с нужным секретом |
+| `server_not_configured` | Алиас не найден в `project.yaml` |
+| `auth_failed` | SSH-сервер отверг пароль/ключ |
+| `connection_failed` | Connection refused (SSH не слушает порт) |
+| `host_unreachable` | DNS fail / timeout |
+| `ddl_blocked` | Попытка DROP/ALTER/CREATE в db_query |
+| `unknown_action` | action_id истёк или уже подтверждён |
+| `db_unsupported` | Неизвестный `db.type` |
+| `internal` | Прочее (детали в `details`) |
+
+При старте сервер проверяет, что для каждого сервера в `project.yaml` есть либо `password`, либо `ssh_key_path` (yaml или env). Если нет — пишет warning в stderr (видно в `claude --debug`).
+
+Если `project.yaml` не найден — сервер падает с подсказкой запустить `init`.
+
 ## Логи
 
 `<project>/server-mcp.log`. Формат:

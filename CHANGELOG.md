@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 — 2026-05-04
+
+### Added
+
+- Structured error responses with `kind` (`missing_credentials`, `auth_failed`, `connection_failed`, `host_unreachable`, `server_not_configured`, `ddl_blocked`, `unknown_action`, `db_unsupported`, `internal`) + actionable `hint`
+- Startup self-check: warns to stderr when a configured server has no credentials in either `secrets.yaml` or env
+- Friendly stderr message when `project.yaml` is missing, with a hint to run `init`
+- Errors now logged to `server-mcp.log` with mode `[ERROR]` and the error kind
+
 ## 0.4.0 — 2026-05-04
 
 ### Added

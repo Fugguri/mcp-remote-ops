@@ -13,10 +13,32 @@ import { SSHTool } from "./tools/ssh.js";
 import { DockerTool } from "./tools/docker.js";
 import { SyncTool } from "./tools/sync.js";
 import { DBTool } from "./tools/db.js";
+import { classifyError } from "./errors.js";
 
 const PROJECT_PATH = process.env.PROJECT_PATH ?? process.cwd();
 
-const config = new Config(PROJECT_PATH);
+let config: Config;
+try {
+  config = new Config(PROJECT_PATH);
+} catch (e) {
+  process.stderr.write(
+    `mcp-remote-ops: failed to load config from ${PROJECT_PATH}\n` +
+      `  ${e instanceof Error ? e.message : String(e)}\n` +
+      `Run: npx github:Fugguri/mcp-remote-ops init ${PROJECT_PATH}\n`,
+  );
+  process.exit(1);
+}
+
+const aliasesWithoutAuth = Object.keys(config.servers).filter(
+  (alias) => !config.hasSecret(alias, "password") && !config.hasSecret(alias, "ssh_key_path"),
+);
+if (aliasesWithoutAuth.length > 0) {
+  process.stderr.write(
+    `mcp-remote-ops: warning — no SSH credentials for servers: ${aliasesWithoutAuth.join(", ")}.\n` +
+      `  Set 'password' or 'ssh_key_path' in secrets.yaml, or env MCP_REMOTE_OPS_<ALIAS>_PASSWORD.\n`,
+  );
+}
+
 const logger = new OperationLogger(PROJECT_PATH, config.logging);
 const permissions = new PermissionManager(config, logger);
 const ssh = new SSHTool(config, permissions);
@@ -167,7 +189,9 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       result = { error: `Unknown tool: ${name}` };
     }
   } catch (e) {
-    result = { error: e instanceof Error ? e.message : String(e) };
+    const serverArg = typeof args.server === "string" ? args.server : undefined;
+    result = classifyError(e, { server: serverArg });
+    logger.log(name, serverArg ?? "—", String(args.command ?? args.sql ?? ""), "error", (result as { kind: string }).kind);
   }
 
   return {
