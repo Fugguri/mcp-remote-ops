@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import YAML from "yaml";
-import { Config } from "../src/config.js";
+import { Config, envVarName } from "../src/config.js";
 import { makeProject } from "./helpers.js";
 
 describe("Config", () => {
@@ -54,6 +54,59 @@ describe("Config", () => {
   it("getDBConfig throws for unknown server", () => {
     const { config } = makeProject();
     expect(() => config.getDBConfig("missing")).toThrow();
+  });
+
+  it("env var overrides secrets.yaml password", () => {
+    const { config } = makeProject();
+    process.env.MCP_REMOTE_OPS_PROD_PASSWORD = "from-env";
+    try {
+      expect(config.getSecret("prod", "password")).toBe("from-env");
+    } finally {
+      delete process.env.MCP_REMOTE_OPS_PROD_PASSWORD;
+    }
+  });
+
+  it("env var works without secrets.yaml", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mcp-noyaml-"));
+    fs.writeFileSync(
+      path.join(dir, "project.yaml"),
+      YAML.stringify({ servers: { prod: { host: "h", user: "u", project_path: "/p" } } }),
+    );
+    process.env.MCP_REMOTE_OPS_PROD_PASSWORD = "only-env";
+    try {
+      const cfg = new Config(dir);
+      expect(cfg.getSecret("prod", "password")).toBe("only-env");
+      expect(cfg.hasSecret("prod", "password")).toBe(true);
+    } finally {
+      delete process.env.MCP_REMOTE_OPS_PROD_PASSWORD;
+    }
+  });
+
+  it("envVarName normalizes server alias and key", () => {
+    const cfg = makeProject().config;
+    void cfg;
+    // staging-2 / ssh-key-path → MCP_REMOTE_OPS_STAGING_2_SSH_KEY_PATH
+    expect(envVarName("staging-2", "ssh-key-path")).toBe(
+      "MCP_REMOTE_OPS_STAGING_2_SSH_KEY_PATH",
+    );
+  });
+
+  it("loads .env from .mcp-remote-ops/", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mcp-dotenv-"));
+    const sub = path.join(dir, ".mcp-remote-ops");
+    fs.mkdirSync(sub);
+    fs.writeFileSync(
+      path.join(sub, "project.yaml"),
+      YAML.stringify({ servers: { prod: { host: "h", user: "u", project_path: "/p" } } }),
+    );
+    fs.writeFileSync(path.join(sub, ".env"), "MCP_REMOTE_OPS_PROD_PASSWORD=from-dotenv\n");
+    delete process.env.MCP_REMOTE_OPS_PROD_PASSWORD;
+    try {
+      const cfg = new Config(dir);
+      expect(cfg.getSecret("prod", "password")).toBe("from-dotenv");
+    } finally {
+      delete process.env.MCP_REMOTE_OPS_PROD_PASSWORD;
+    }
   });
 
   it("logging settings parsed", () => {

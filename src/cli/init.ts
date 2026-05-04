@@ -139,6 +139,9 @@ function ensureGitignore(projectPath: string): string[] {
   if (!lines.some((l) => l.includes(".mcp-remote-ops/secrets.yaml"))) {
     needed.push(".mcp-remote-ops/secrets.yaml");
   }
+  if (!lines.some((l) => l.includes(".mcp-remote-ops/.env"))) {
+    needed.push(".mcp-remote-ops/.env");
+  }
   if (needed.length === 0) return [];
   const prefix = lines.length === 0 || lines.at(-1) === "" ? "" : "\n";
   fs.appendFileSync(gitignore, prefix + needed.join("\n") + "\n");

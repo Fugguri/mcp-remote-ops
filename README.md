@@ -144,7 +144,11 @@ logging:
   # или: max_size_mb: 10 + backup_count: 5
 ```
 
-## `secrets.yaml`
+## Секреты: 3 способа задать
+
+Приоритет (выше → ниже): **env-переменная** → `secrets.yaml` → ошибка.
+
+### 1. `secrets.yaml` (default)
 
 ```yaml
 prod:
@@ -153,7 +157,46 @@ prod:
   # db_password: SEPARATE_DB    # если БД на отдельном пароле
 ```
 
-Приоритет: `ssh_key_path` > `password`. `db_password` > `password`.
+Внутри одного сервера: `ssh_key_path` > `password`, `db_password` > `password`.
+
+### 2. Переменные окружения
+
+Формат: `MCP_REMOTE_OPS_<SERVER>_<KEY>` — алиас сервера и ключ переводятся в верхний регистр, любые не-A-Z0-9 заменяются на `_`.
+
+```bash
+export MCP_REMOTE_OPS_PROD_PASSWORD='your-ssh-password'
+export MCP_REMOTE_OPS_PROD_DB_PASSWORD='your-db-password'
+# или через ключ:
+export MCP_REMOTE_OPS_PROD_SSH_KEY_PATH='~/.ssh/id_rsa'
+
+# Для алиаса staging-2 → MCP_REMOTE_OPS_STAGING_2_PASSWORD
+```
+
+Удобно для:
+- CI/CD пайплайнов (секреты из vault)
+- продакшн-серверов (передавать через systemd unit / docker-compose)
+- общих проектов где `secrets.yaml` нельзя коммитить даже локально
+
+Можно частично перекрывать: `secrets.yaml` хранит SSH-пароль, env-переменная хранит DB-пароль.
+
+### 3. `.env` файл в `.mcp-remote-ops/`
+
+`.mcp-remote-ops/.env` загружается автоматически при старте сервера (как фолбэк, существующие `process.env` НЕ перезаписываются):
+
+```env
+MCP_REMOTE_OPS_PROD_PASSWORD=your-ssh-password
+MCP_REMOTE_OPS_PROD_DB_PASSWORD=your-db-password
+```
+
+Файл попадает в `.gitignore` автоматически.
+
+### Полный список ключей секретов
+
+| Ключ | Что | Где используется |
+|---|---|---|
+| `password` | SSH и (по умолчанию) БД пароль | SSH/Docker/sync, db_query если нет `db_password` |
+| `ssh_key_path` | Путь к приватному SSH-ключу (приоритет над password) | SSH/Docker/sync |
+| `db_password` | Отдельный пароль БД (override) | db_query |
 
 ## Tools
 

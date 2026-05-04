@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — 2026-05-04
+
+### Added
+
+- Secrets can be stored in environment variables (`MCP_REMOTE_OPS_<SERVER>_<KEY>`) — env takes priority over `secrets.yaml`. Useful for CI/CD, production deployments, or projects where `secrets.yaml` shouldn't exist on disk.
+- Auto-load `.mcp-remote-ops/.env` on server startup (existing `process.env` not overridden)
+- `.mcp-remote-ops/.env` auto-added to `.gitignore`
+- Improved error message when secret missing — shows both yaml key and corresponding env-var name
+
 ## 0.3.0 — 2026-05-04
 
 ### Added
