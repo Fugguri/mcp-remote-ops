@@ -53,11 +53,14 @@ init [project_path] [options]
 1. Создаёт папку `.mcp-remote-ops/` в корне проекта
 2. Если есть `.env.make` или `.env` — парсит `SERVER_*` / `DB_*` как дефолты
 3. **Интерактивно опрашивает** недостающие поля: SSH host/user/port, метод аутентификации (пароль или ключ), параметры БД (со скрытым вводом для паролей)
-4. Пишет `.mcp-remote-ops/project.yaml` + `.mcp-remote-ops/secrets.yaml` (последний попадёт в `.gitignore`)
-5. Регистрирует MCP в Claude Code и/или OpenCode
-6. Если ранее были `project.yaml`/`secrets.yaml` в корне — переносит в новую папку
+4. Пишет `.mcp-remote-ops/project.yaml` + `.mcp-remote-ops/secrets.yaml`
+5. **Автоматически добавляет `.mcp-remote-ops/secrets.yaml` в `.gitignore`** проекта (идемпотентно — повторный запуск не создаёт дублей)
+6. Регистрирует MCP в Claude Code и/или OpenCode
+7. Если ранее были `project.yaml`/`secrets.yaml` в корне — переносит в новую папку
 
 После init — **рестарт твоего AI-инструмента** в этой папке → `remote-ops` появится в списке MCP.
+
+> ⚠️ **Безопасность:** `secrets.yaml` содержит пароли SSH и БД в открытом виде. Не коммить его, не пересылай, не клади в публичные облачные синки. Init добавляет его в `.gitignore` автоматически, но если репо уже содержит закоммиченный `secrets.yaml` (старая версия проекта) — `.gitignore` его не уберёт. Удали из git руками: `git rm --cached secrets.yaml && git commit`.
 
 ## Ручная регистрация (если init не подошёл)
 
