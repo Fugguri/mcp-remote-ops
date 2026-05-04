@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.0 — 2026-05-04
+
+### Changed
+
+- Build now bundles via esbuild into single-file `dist/server.js` (3.4 MB) and
+  `dist/cli/init.js` (270 KB) with all runtime deps inlined. Fixes
+  `npm install -g github:Fugguri/mcp-remote-ops` failing on ssh2's postinstall
+  in temp git checkout.
+- Runtime deps moved to `devDependencies` — consumers installing from git URL
+  no longer trigger any package installs. Pure file-copy.
+- ssh2's optional `cpu-features` and pg's `pg-native` left as `external` —
+  ssh2/pg fall back to pure-JS implementations if those aren't installed.
+- Added `npm run typecheck` (was: just `tsc`).
+
 ## 0.5.0 — 2026-05-04
 
 ### Added

@@ -199,5 +199,12 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   };
 });
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+async function start() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
+
+start().catch((e) => {
+  process.stderr.write(`mcp-remote-ops fatal: ${e instanceof Error ? e.message : String(e)}\n`);
+  process.exit(1);
+});
