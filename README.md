@@ -16,47 +16,49 @@ SSH exec, Docker logs/restart, rsync, SQL — с явным confirm-flow для 
 
 ## Установка
 
-### Напрямую из GitHub (без npm publish)
+### Через `npx` (рекомендуется)
+
+Самый простой путь — без глобальной установки, всегда свежая версия:
 
 ```bash
 cd /path/to/your/project
-npx github:Fugguri/mcp-remote-ops init
+npx -y github:Fugguri/mcp-remote-ops --yes
 ```
 
-### Из npm
+Первый запуск может попросить подтверждение `Ok to proceed?` — нажми `y`.
+
+Опции CLI можно пробрасывать после имени пакета:
+
+```bash
+# интерактив (без --yes)
+npx -y github:Fugguri/mcp-remote-ops
+
+# только для Claude Code
+npx -y github:Fugguri/mcp-remote-ops --target claude
+
+# на конкретный путь
+npx -y github:Fugguri/mcp-remote-ops --yes /path/to/project
+```
+
+### Из npm (когда пакет опубликован)
 
 ```bash
 cd /path/to/your/project
-npx @fugguri/mcp-remote-ops-init
+npx -y @fugguri/mcp-remote-ops --yes
 ```
 
-### Глобально
+### Глобально (опционально)
 
-Один раз установил — пользуешься везде без `npx`.
+Если хочется команду `mcp-remote-ops-init` без `npx`:
 
 ```bash
 npm install -g github:Fugguri/mcp-remote-ops
 
-# проверка
-which mcp-remote-ops-init     # должен показать путь к бинарю
-which mcp-remote-ops          # сам MCP-сервер
-
-# использование
-cd /any/your/project
-mcp-remote-ops-init           # интерактив, текущая папка
-# или с явным путём:
-mcp-remote-ops-init /path/to/another/project
-# или авто из .env, без вопросов:
-mcp-remote-ops-init --yes
+# убедись что ~/.npm-global/bin (или $(npm config get prefix)/bin) в $PATH
+which mcp-remote-ops-init
 ```
 
-При глобальной установке `prepare` хук собирает TS в `dist/` автоматически. Если `which mcp-remote-ops-init` ничего не показывает — проверь что `npm bin -g` в `$PATH`.
-
-Обновление до последней версии из GitHub:
-
-```bash
-npm install -g github:Fugguri/mcp-remote-ops      # просто переустановка тянет свежий main
-```
+> ⚠ В некоторых конфигурациях `npm install -g` из git URL может тихо пропустить файлы пакета (баг npm 10). Если после установки `dist/cli/init.js` отсутствует — используй `npx` вариант выше.
 
 ### Опции CLI
 
