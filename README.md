@@ -16,49 +16,61 @@ SSH exec, Docker logs/restart, rsync, SQL — с явным confirm-flow для 
 
 ## Установка
 
-### Через `npx` (рекомендуется)
-
-Самый простой путь — без глобальной установки, всегда свежая версия:
+### Через `npx` (быстрый старт)
 
 ```bash
 cd /path/to/your/project
-npx -y github:Fugguri/mcp-remote-ops --yes
+npx -y https://github.com/Fugguri/mcp-remote-ops/archive/refs/heads/main.tar.gz --yes
 ```
 
-Первый запуск может попросить подтверждение `Ok to proceed?` — нажми `y`.
-
-Опции CLI можно пробрасывать после имени пакета:
+Опции:
 
 ```bash
 # интерактив (без --yes)
-npx -y github:Fugguri/mcp-remote-ops
+npx -y https://github.com/Fugguri/mcp-remote-ops/archive/refs/heads/main.tar.gz
 
 # только для Claude Code
-npx -y github:Fugguri/mcp-remote-ops --target claude
+npx -y https://github.com/Fugguri/mcp-remote-ops/archive/refs/heads/main.tar.gz --target claude
 
 # на конкретный путь
-npx -y github:Fugguri/mcp-remote-ops --yes /path/to/project
+npx -y https://github.com/Fugguri/mcp-remote-ops/archive/refs/heads/main.tar.gz --yes /path
 ```
 
-### Из npm (когда пакет опубликован)
+### Глобально (через tarball URL)
+
+`npm install -g github:user/repo` в npm 10 имеет баг — может тихо пропустить файлы. Используй tarball URL — работает надёжно:
+
+```bash
+npm install -g https://github.com/Fugguri/mcp-remote-ops/archive/refs/heads/main.tar.gz
+
+# убедись что ~/.npm-global/bin (или $(npm config get prefix)/bin) в $PATH
+hash -r
+which mcp-remote-ops-init
+
+# если "command not found" — добавь в ~/.zshrc или ~/.bashrc:
+echo 'export PATH="$(npm config get prefix)/bin:$PATH"' >> ~/.zshrc
+exec zsh
+```
+
+После установки — везде работает как:
+
+```bash
+cd /any/project
+mcp-remote-ops-init --yes      # авто из .env
+mcp-remote-ops-init             # интерактив
+mcp-remote-ops-init --target opencode /other/path
+```
+
+Обновление до последней версии — переустанови той же командой, она тянет свежий main.
+
+### Альтернатива — без установки, через `npx`
+
+Без глобальной установки, всегда свежий main:
 
 ```bash
 cd /path/to/your/project
-npx -y @fugguri/mcp-remote-ops --yes
+npx -y https://github.com/Fugguri/mcp-remote-ops/archive/refs/heads/main.tar.gz --yes
 ```
-
-### Глобально (опционально)
-
-Если хочется команду `mcp-remote-ops-init` без `npx`:
-
-```bash
-npm install -g github:Fugguri/mcp-remote-ops
-
-# убедись что ~/.npm-global/bin (или $(npm config get prefix)/bin) в $PATH
-which mcp-remote-ops-init
-```
-
-> ⚠ В некоторых конфигурациях `npm install -g` из git URL может тихо пропустить файлы пакета (баг npm 10). Если после установки `dist/cli/init.js` отсутствует — используй `npx` вариант выше.
 
 ### Опции CLI
 
