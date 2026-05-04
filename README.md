@@ -9,9 +9,25 @@ SSH exec, Docker logs/restart, rsync, SQL — с явным confirm-flow для 
 
 ## Установка
 
+### Из npm (когда пакет опубликован)
+
 ```bash
 cd /path/to/your/project
 npx @fugguri/mcp-remote-ops-init
+```
+
+### Напрямую из GitHub (без npm)
+
+```bash
+cd /path/to/your/project
+npx github:fugguri/mcp-remote-ops init
+```
+
+Или глобально:
+
+```bash
+npm install -g github:fugguri/mcp-remote-ops
+mcp-remote-ops-init /path/to/your/project
 ```
 
 Что произойдёт:
@@ -111,7 +127,7 @@ Tool в режиме `confirm` возвращает:
 ## Разработка
 
 ```bash
-bun install
-bun run build      # tsc
-bun run test       # vitest
+npm install
+npm run build       # tsc
+npm test            # vitest
 ```
