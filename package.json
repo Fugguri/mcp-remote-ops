@@ -40,13 +40,13 @@
   ],
   "author": "Fugguri <fygguri@icloud.com>",
   "license": "MIT",
-  "homepage": "https://github.com/fugguri/mcp-remote-ops#readme",
+  "homepage": "https://github.com/Fugguri/mcp-remote-ops#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fugguri/mcp-remote-ops.git"
+    "url": "git+https://github.com/Fugguri/mcp-remote-ops.git"
   },
   "bugs": {
-    "url": "https://github.com/fugguri/mcp-remote-ops/issues"
+    "url": "https://github.com/Fugguri/mcp-remote-ops/issues"
   },
   "publishConfig": {
     "access": "public"

@@ -1,6 +1,6 @@
 # mcp-remote-ops
 
-[![CI](https://github.com/fugguri/mcp-remote-ops/actions/workflows/ci.yml/badge.svg)](https://github.com/fugguri/mcp-remote-ops/actions/workflows/ci.yml)
+[![CI](https://github.com/Fugguri/mcp-remote-ops/actions/workflows/ci.yml/badge.svg)](https://github.com/Fugguri/mcp-remote-ops/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@fugguri/mcp-remote-ops.svg)](https://www.npmjs.com/package/@fugguri/mcp-remote-ops)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -20,13 +20,13 @@ npx @fugguri/mcp-remote-ops-init
 
 ```bash
 cd /path/to/your/project
-npx github:fugguri/mcp-remote-ops init
+npx github:Fugguri/mcp-remote-ops init
 ```
 
 Или глобально:
 
 ```bash
-npm install -g github:fugguri/mcp-remote-ops
+npm install -g github:Fugguri/mcp-remote-ops
 mcp-remote-ops-init /path/to/your/project
 ```
 
