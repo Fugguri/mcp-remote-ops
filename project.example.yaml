@@ -1,0 +1,32 @@
+servers:
+  prod:
+    host: 1.2.3.4
+    user: deploy
+    port: 22
+    project_path: /var/www/app
+
+operations:
+  docker_logs: auto
+  docker_status: auto
+  docker_restart: confirm
+  ssh_exec: confirm
+  sync: confirm
+  db_select: auto
+  db_update: confirm
+  db_delete: confirm
+  db_insert: confirm
+
+db:
+  prod:
+    type: postgres        # postgres | mysql | mariadb | sqlite
+    host: localhost
+    port: 5432
+    database: app_db
+    # user: app_user      # optional, defaults to servers.prod.user
+
+# Log retention (optional). Drop the section to keep file growing without rotation.
+# retention_days: N    — daily rotation, keep N days
+# max_size_mb: N       — size-based rotation, N MB per file
+# backup_count: N      — how many rotated files to keep (for max_size_mb, default 5)
+logging:
+  retention_days: 30

@@ -1,5 +1,9 @@
 # mcp-remote-ops
 
+[![CI](https://github.com/fugguri/mcp-remote-ops/actions/workflows/ci.yml/badge.svg)](https://github.com/fugguri/mcp-remote-ops/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@fugguri/mcp-remote-ops.svg)](https://www.npmjs.com/package/@fugguri/mcp-remote-ops)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 MCP-сервер для управления удалёнными серверами из Claude Code.
 SSH exec, Docker logs/restart, rsync, SQL — с явным confirm-flow для опасных операций.
 

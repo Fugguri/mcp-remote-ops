@@ -11,6 +11,7 @@
   "files": [
     "dist",
     "README.md",
+    "LICENSE",
     "project.example.yaml",
     "secrets.example.yaml"
   ],
@@ -20,7 +21,34 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "init": "node dist/cli/init.js",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "prepublishOnly": "npm run build && npm run test"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "claude-code",
+    "anthropic",
+    "ssh",
+    "docker",
+    "rsync",
+    "remote",
+    "devops",
+    "automation"
+  ],
+  "author": "Fugguri <fygguri@icloud.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/fugguri/mcp-remote-ops#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fugguri/mcp-remote-ops.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fugguri/mcp-remote-ops/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
