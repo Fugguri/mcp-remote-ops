@@ -9,6 +9,13 @@ SSH exec, Docker logs/restart, rsync, SQL — с явным confirm-flow для 
 
 ## Установка
 
+### Напрямую из GitHub (без npm publish)
+
+```bash
+cd /path/to/your/project
+npx github:Fugguri/mcp-remote-ops init
+```
+
 ### Из npm (когда пакет опубликован)
 
 ```bash
@@ -16,30 +23,40 @@ cd /path/to/your/project
 npx @fugguri/mcp-remote-ops-init
 ```
 
-### Напрямую из GitHub (без npm)
-
-```bash
-cd /path/to/your/project
-npx github:Fugguri/mcp-remote-ops init
-```
-
-Или глобально:
+### Глобально
 
 ```bash
 npm install -g github:Fugguri/mcp-remote-ops
 mcp-remote-ops-init /path/to/your/project
 ```
 
-Что произойдёт:
+## Что делает init
 
-1. Найдёт `.env.make` или `.env`, распарсит `SERVER_*` / `DB_*`
-2. Создаст `project.yaml` (server + db, операции с дефолтами)
-3. Создаст `secrets.yaml` (SSH/DB пароли, добавится в `.gitignore`)
-4. Зарегистрирует MCP в `.claude/settings.local.json`
+1. Создаёт папку `.mcp-remote-ops/` в корне проекта
+2. Если есть `.env.make` или `.env` — парсит `SERVER_*` / `DB_*` как дефолты
+3. **Интерактивно опрашивает** недостающие поля: SSH host/user/port, метод аутентификации (пароль или ключ), параметры БД
+4. Пишет `.mcp-remote-ops/project.yaml` + `.mcp-remote-ops/secrets.yaml` (последний попадёт в `.gitignore`)
+5. Регистрирует MCP в `.claude/settings.local.json`
+6. Если ранее были `project.yaml`/`secrets.yaml` в корне — переносит в новую папку
 
-Перезапусти Claude Code в проекте — `/mcp` покажет `remote-ops`.
+Флаг `--yes` (или `-y`) пропускает интерактивные промпты — пишет только то что нашлось в `.env`. Удобно для CI.
 
-## Структура `project.yaml`
+После init: рестарт Claude Code → `/mcp` покажет `remote-ops`.
+
+## Структура файлов в проекте
+
+```
+your-project/
+├── .mcp-remote-ops/
+│   ├── project.yaml      # серверы, операции, БД, логи
+│   └── secrets.yaml      # пароли/ключи (gitignored)
+├── .claude/
+│   └── settings.local.json   # регистрация MCP (per-user)
+├── .gitignore            # auto: .mcp-remote-ops/secrets.yaml
+└── server-mcp.log        # лог операций
+```
+
+## `project.yaml`
 
 ```yaml
 servers:
@@ -70,7 +87,7 @@ db:
 
 logging:
   retention_days: 30            # посуточная ротация
-  # или max_size_mb + backup_count
+  # или: max_size_mb: 10 + backup_count: 5
 ```
 
 ## `secrets.yaml`
@@ -124,10 +141,20 @@ Tool в режиме `confirm` возвращает:
 2026-05-04 13:05:29 [CONFIRM] ssh_exec       prod    whoami  → approved
 ```
 
+## Поддерживаемые БД
+
+| Тип | Драйвер | Авто-детект |
+|---|---|---|
+| `postgres` | pg | port 5432 |
+| `mysql` / `mariadb` | mysql2 | port 3306, или нестандартный port |
+| `sqlite` | node:sqlite (Node 22+) | DB_PATH без DB_HOST |
+
+Override через `DB_TYPE` в `.env` или `db.<server>.type` в yaml.
+
 ## Разработка
 
 ```bash
 npm install
-npm run build       # tsc
+npm run build       # tsc → dist/
 npm test            # vitest
 ```

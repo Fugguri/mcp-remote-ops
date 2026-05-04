@@ -18,6 +18,23 @@ describe("Config", () => {
     expect(() => new Config(tmp)).toThrow(/project.yaml not found/);
   });
 
+  it("loads from .mcp-remote-ops/ subdirectory", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mcp-sub-"));
+    const sub = path.join(dir, ".mcp-remote-ops");
+    fs.mkdirSync(sub);
+    fs.writeFileSync(
+      path.join(sub, "project.yaml"),
+      YAML.stringify({ servers: { x: { host: "h", user: "u", project_path: "/p" } } }),
+    );
+    fs.writeFileSync(
+      path.join(sub, "secrets.yaml"),
+      YAML.stringify({ x: { password: "p" } }),
+    );
+    const cfg = new Config(dir);
+    expect(cfg.servers.x.host).toBe("h");
+    expect(cfg.getSecret("x", "password")).toBe("p");
+  });
+
   it("missing secret throws with key + server in message", () => {
     const { config } = makeProject();
     expect(() => config.getSecret("prod", "missing")).toThrow(/missing.*prod/);

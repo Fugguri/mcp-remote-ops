@@ -7,7 +7,9 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import YAML from "yaml";
+import { ask, confirm } from "./prompt.js";
 
 interface Env {
   [key: string]: string;
@@ -144,16 +146,113 @@ function registerMCP(projectPath: string, packageRoot: string) {
 }
 
 function findPackageRoot(): string {
-  let dir = path.dirname(new URL(import.meta.url).pathname);
-  while (dir !== "/") {
+  let dir = path.dirname(fileURLToPath(import.meta.url));
+  while (dir !== "/" && dir !== ".") {
     if (fs.existsSync(path.join(dir, "package.json"))) return dir;
     dir = path.dirname(dir);
   }
   throw new Error("package root not found");
 }
 
+function parseArgs(argv: string[]): { target: string; nonInteractive: boolean } {
+  const args = argv.slice(2);
+  const nonInteractive = args.includes("--yes") || args.includes("-y") || !!process.env.MCP_REMOTE_OPS_YES;
+  const positional = args.find((a) => !a.startsWith("-"));
+  return {
+    target: positional ? path.resolve(positional) : process.cwd(),
+    nonInteractive,
+  };
+}
+
+async function fillSecretsInteractively(
+  project: ProjectYaml,
+  secrets: SecretsYaml,
+): Promise<void> {
+  const alias = "prod";
+  const srv = project.servers[alias];
+
+  console.log("\n=== Server (SSH) ===");
+  srv.host = await ask("SSH host", { default: srv.host, required: true });
+  srv.user = await ask("SSH user", { default: srv.user, required: true });
+  const port = await ask("SSH port", { default: String(srv.port ?? 22) });
+  if (port && port !== "22") srv.port = Number(port);
+  srv.project_path = await ask("Project path on server", { default: srv.project_path });
+
+  console.log("\n=== SSH auth ===");
+  const useKey = secrets[alias].ssh_key_path
+    ? await confirm("Use SSH key (already detected)?", true)
+    : await confirm("Use SSH key instead of password?", false);
+
+  if (useKey) {
+    const keyPath = await ask("Path to private key", {
+      default: secrets[alias].ssh_key_path ?? "~/.ssh/id_rsa",
+      required: true,
+    });
+    secrets[alias].ssh_key_path = keyPath;
+    delete secrets[alias].password;
+  } else {
+    const pwd = await ask("SSH password", {
+      default: secrets[alias].password,
+      required: true,
+      secret: true,
+    });
+    secrets[alias].password = pwd;
+    delete secrets[alias].ssh_key_path;
+  }
+
+  if (project.db?.[alias]) {
+    console.log("\n=== Database ===");
+    const db = project.db[alias];
+    if (db.type !== "sqlite") {
+      db.host = await ask("DB host", { default: String(db.host ?? ""), required: true });
+      db.port = Number(await ask("DB port", { default: String(db.port ?? defaultPort(String(db.type ?? "postgres"))) }));
+      db.database = await ask("DB name", { default: String(db.database ?? ""), required: true });
+      db.user = await ask("DB user", { default: String(db.user ?? srv.user) });
+
+      const samePwd = !secrets[alias].db_password;
+      const useSamePwd = samePwd
+        ? await confirm("Use SSH password for DB?", true)
+        : false;
+      if (!useSamePwd) {
+        const dbPwd = await ask("DB password", {
+          default: secrets[alias].db_password,
+          required: true,
+          secret: true,
+        });
+        secrets[alias].db_password = dbPwd;
+      }
+    } else {
+      db.database = await ask("SQLite database file path", {
+        default: String(db.database ?? ""),
+        required: true,
+      });
+    }
+  } else {
+    if (await confirm("\nAdd a database?", false)) {
+      const types = ["postgres", "mysql", "mariadb", "sqlite"];
+      let dbType = "";
+      while (!types.includes(dbType)) {
+        dbType = (await ask(`DB type (${types.join("|")})`, { default: "postgres" })).toLowerCase();
+      }
+      if (dbType === "sqlite") {
+        const filePath = await ask("SQLite file path", { required: true });
+        project.db = { [alias]: { type: "sqlite", database: filePath } };
+      } else {
+        const host = await ask("DB host", { required: true });
+        const port = Number(await ask("DB port", { default: String(defaultPort(dbType)) }));
+        const database = await ask("DB name", { required: true });
+        const user = await ask("DB user", { default: srv.user });
+        project.db = { [alias]: { type: dbType, host, port, database, user } };
+        if (!(await confirm("Use SSH password for DB?", true))) {
+          secrets[alias].db_password = await ask("DB password", { required: true, secret: true });
+        }
+      }
+    }
+  }
+}
+
 async function main() {
-  const target = process.argv[2] ? path.resolve(process.argv[2]) : process.cwd();
+  const { target, nonInteractive } = parseArgs(process.argv);
   if (!fs.existsSync(target)) {
     console.error(`Folder not found: ${target}`);
     process.exit(1);
@@ -164,23 +263,36 @@ async function main() {
   if (envFile) {
     console.log(`✓ found ${path.basename(envFile)} — SERVER_HOST=${env.SERVER_HOST ?? "?"} DB_NAME=${env.DB_NAME ?? "—"}`);
   } else {
-    console.log("⚠ no .env file — writing template, fill in manually");
+    console.log("⚠ no .env file detected");
   }
 
   const { project, secrets } = buildConfigs(env);
 
-  const projectFile = path.join(target, "project.yaml");
-  const secretsFile = path.join(target, "secrets.yaml");
+  const configDir = path.join(target, ".mcp-remote-ops");
+  fs.mkdirSync(configDir, { recursive: true });
+  const projectFile = path.join(configDir, "project.yaml");
+  const secretsFile = path.join(configDir, "secrets.yaml");
 
-  if (fs.existsSync(projectFile)) {
-    console.log(`⚠ ${projectFile} exists — skipping (delete to regenerate)`);
-  } else {
-    writeYaml(projectFile, project);
-    console.log(`✓ wrote ${projectFile}`);
+  // Migrate legacy files from project root
+  for (const name of ["project.yaml", "secrets.yaml"]) {
+    const legacy = path.join(target, name);
+    const target_ = path.join(configDir, name);
+    if (fs.existsSync(legacy) && !fs.existsSync(target_)) {
+      fs.renameSync(legacy, target_);
+      console.log(`↪ moved legacy ${legacy} → ${target_}`);
+    }
   }
-  if (fs.existsSync(secretsFile)) {
-    console.log(`⚠ ${secretsFile} exists — skipping`);
+
+  if (fs.existsSync(projectFile) || fs.existsSync(secretsFile)) {
+    if (fs.existsSync(projectFile)) console.log(`⚠ ${projectFile} exists — skipping`);
+    if (fs.existsSync(secretsFile)) console.log(`⚠ ${secretsFile} exists — skipping`);
+    console.log("Delete those files to regenerate, or edit them manually.");
   } else {
+    if (!nonInteractive) {
+      await fillSecretsInteractively(project, secrets);
+    }
+    writeYaml(projectFile, project);
+    console.log(`\n✓ wrote ${projectFile}`);
     writeYaml(secretsFile, secrets);
     console.log(`✓ wrote ${secretsFile}`);
   }
@@ -190,7 +302,7 @@ async function main() {
   console.log("\nDone. Restart Claude Code in this project for the MCP to load.");
 }
 
-const isMain = import.meta.url === `file://${process.argv[1]}`;
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   main().catch((e) => {
     console.error(e);

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0 — 2026-05-04
+
+### Changed
+
+- Configs now live in `.mcp-remote-ops/` directory (was: project root). Legacy files in root are auto-migrated by `init`. Backwards-compat fallback to root if no dedicated dir.
+- `init` is now interactive: prompts for SSH host/user/port, auth method, DB params. Use `--yes` (or `-y`) to skip prompts.
+
+### Added
+
+- `prompt.ts` helper with masked password input
+- Auto-migration of legacy `project.yaml`/`secrets.yaml` from project root
+
 ## 0.1.0 — 2026-05-04
 
 Initial release.

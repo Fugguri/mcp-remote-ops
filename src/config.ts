@@ -2,6 +2,14 @@ import fs from "node:fs";
 import path from "node:path";
 import YAML from "yaml";
 
+export const CONFIG_DIR_NAME = ".mcp-remote-ops";
+
+export function resolveConfigDir(projectPath: string): string {
+  const dedicated = path.join(projectPath, CONFIG_DIR_NAME);
+  if (fs.existsSync(path.join(dedicated, "project.yaml"))) return dedicated;
+  return projectPath;
+}
+
 export interface ServerEntry {
   host: string;
   user: string;
@@ -33,9 +41,12 @@ export class Config {
 
   constructor(projectPath: string) {
     this.projectPath = projectPath;
-    const projectFile = path.join(projectPath, "project.yaml");
+    const configDir = resolveConfigDir(projectPath);
+    const projectFile = path.join(configDir, "project.yaml");
     if (!fs.existsSync(projectFile)) {
-      throw new Error(`project.yaml not found in ${projectPath}`);
+      throw new Error(
+        `project.yaml not found. Looked in ${path.join(projectPath, CONFIG_DIR_NAME)} and ${projectPath}`,
+      );
     }
     const data = YAML.parse(fs.readFileSync(projectFile, "utf8")) ?? {};
     this.servers = data.servers ?? {};
@@ -43,7 +54,7 @@ export class Config {
     this.db = data.db ?? {};
     this.logging = data.logging ?? {};
 
-    const secretsFile = path.join(projectPath, "secrets.yaml");
+    const secretsFile = path.join(configDir, "secrets.yaml");
     this.secrets = fs.existsSync(secretsFile)
       ? YAML.parse(fs.readFileSync(secretsFile, "utf8")) ?? {}
       : {};
@@ -78,8 +89,13 @@ export class Config {
     const lines = fs.existsSync(gitignore)
       ? fs.readFileSync(gitignore, "utf8").split("\n")
       : [];
-    if (!lines.some((l) => l.includes("secrets.yaml"))) {
-      fs.appendFileSync(gitignore, "\nsecrets.yaml\n");
+    const needed: string[] = [];
+    if (!lines.some((l) => l.includes("secrets.yaml"))) needed.push("secrets.yaml");
+    if (!lines.some((l) => l.includes(CONFIG_DIR_NAME))) {
+      needed.push(`${CONFIG_DIR_NAME}/secrets.yaml`);
+    }
+    if (needed.length > 0) {
+      fs.appendFileSync(gitignore, "\n" + needed.join("\n") + "\n");
     }
   }
 }

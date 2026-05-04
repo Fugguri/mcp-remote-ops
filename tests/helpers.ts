@@ -27,7 +27,9 @@ export function makeProject(extra: { db?: Record<string, unknown>; secrets?: Rec
     },
   };
   const secrets = extra.secrets ?? { prod: { password: "secret123" } };
-  fs.writeFileSync(path.join(dir, "project.yaml"), YAML.stringify(project));
-  fs.writeFileSync(path.join(dir, "secrets.yaml"), YAML.stringify(secrets));
+  const configDir = path.join(dir, ".mcp-remote-ops");
+  fs.mkdirSync(configDir);
+  fs.writeFileSync(path.join(configDir, "project.yaml"), YAML.stringify(project));
+  fs.writeFileSync(path.join(configDir, "secrets.yaml"), YAML.stringify(secrets));
   return { dir, config: new Config(dir) };
 }

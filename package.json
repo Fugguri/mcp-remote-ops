@@ -1,6 +1,6 @@
 {
   "name": "@fugguri/mcp-remote-ops",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for remote operations: SSH exec, Docker logs/restart, rsync deploy, SQL queries — with confirm-flow permissions",
   "type": "module",
   "main": "dist/server.js",
