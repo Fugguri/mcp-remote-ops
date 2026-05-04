@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 — 2026-05-04
+
+### Added
+
+- OpenCode support: `init` now writes `opencode.json` alongside `.claude/settings.local.json`
+- `--target claude|opencode|both` CLI flag (default: `both`)
+- Manual registration snippets for Claude Code and OpenCode in README
+
 ## 0.2.0 — 2026-05-04
 
 ### Changed

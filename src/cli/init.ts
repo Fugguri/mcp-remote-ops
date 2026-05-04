@@ -127,7 +127,7 @@ function writeYaml(filePath: string, data: unknown) {
   fs.writeFileSync(filePath, YAML.stringify(data, { lineWidth: 0 }));
 }
 
-function registerMCP(projectPath: string, packageRoot: string) {
+function registerClaude(projectPath: string, packageRoot: string): string {
   const claudeDir = path.join(projectPath, ".claude");
   fs.mkdirSync(claudeDir, { recursive: true });
   const settingsFile = path.join(claudeDir, "settings.local.json");
@@ -145,6 +145,21 @@ function registerMCP(projectPath: string, packageRoot: string) {
   return settingsFile;
 }
 
+function registerOpenCode(projectPath: string, packageRoot: string): string {
+  const file = path.join(projectPath, "opencode.json");
+  const cfg = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
+  cfg.mcp ??= {};
+  const serverScript = path.join(packageRoot, "dist", "server.js");
+  cfg.mcp["remote-ops"] = {
+    type: "local",
+    command: ["node", serverScript],
+    enabled: true,
+    environment: { PROJECT_PATH: projectPath },
+  };
+  fs.writeFileSync(file, JSON.stringify(cfg, null, 2));
+  return file;
+}
+
 function findPackageRoot(): string {
   let dir = path.dirname(fileURLToPath(import.meta.url));
   while (dir !== "/" && dir !== ".") {
@@ -154,13 +169,28 @@ function findPackageRoot(): string {
   throw new Error("package root not found");
 }
 
-function parseArgs(argv: string[]): { target: string; nonInteractive: boolean } {
+type Target = "claude" | "opencode" | "both";
+
+function parseArgs(argv: string[]): {
+  target: string;
+  nonInteractive: boolean;
+  registerTarget: Target;
+} {
   const args = argv.slice(2);
-  const nonInteractive = args.includes("--yes") || args.includes("-y") || !!process.env.MCP_REMOTE_OPS_YES;
-  const positional = args.find((a) => !a.startsWith("-"));
+  const nonInteractive =
+    args.includes("--yes") || args.includes("-y") || !!process.env.MCP_REMOTE_OPS_YES;
+  const targetIdx = args.findIndex((a) => a === "--target" || a === "-t");
+  const targetVal =
+    targetIdx >= 0 ? (args[targetIdx + 1] as Target | undefined) : undefined;
+  const registerTarget: Target =
+    targetVal && ["claude", "opencode", "both"].includes(targetVal)
+      ? targetVal
+      : "both";
+  const positional = args.find((a, i) => !a.startsWith("-") && i !== targetIdx + 1);
   return {
     target: positional ? path.resolve(positional) : process.cwd(),
     nonInteractive,
+    registerTarget,
   };
 }
 
@@ -252,7 +282,7 @@ async function fillSecretsInteractively(
 }
 
 async function main() {
-  const { target, nonInteractive } = parseArgs(process.argv);
+  const { target, nonInteractive, registerTarget } = parseArgs(process.argv);
   if (!fs.existsSync(target)) {
     console.error(`Folder not found: ${target}`);
     process.exit(1);
@@ -297,9 +327,16 @@ async function main() {
     console.log(`✓ wrote ${secretsFile}`);
   }
 
-  const settingsPath = registerMCP(target, findPackageRoot());
-  console.log(`✓ registered MCP in ${settingsPath}`);
-  console.log("\nDone. Restart Claude Code in this project for the MCP to load.");
+  const packageRoot = findPackageRoot();
+  if (registerTarget === "claude" || registerTarget === "both") {
+    const p = registerClaude(target, packageRoot);
+    console.log(`✓ Claude Code: registered in ${p}`);
+  }
+  if (registerTarget === "opencode" || registerTarget === "both") {
+    const p = registerOpenCode(target, packageRoot);
+    console.log(`✓ OpenCode: registered in ${p}`);
+  }
+  console.log("\nDone. Restart your AI tool in this project for the MCP to load.");
 }
 
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

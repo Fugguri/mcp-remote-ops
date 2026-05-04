@@ -7,6 +7,13 @@
 MCP-сервер для управления удалёнными серверами из Claude Code.
 SSH exec, Docker logs/restart, rsync, SQL — с явным confirm-flow для опасных операций.
 
+## Поддерживаемые AI-агенты
+
+- **Claude Code** — пишет в `<project>/.claude/settings.local.json`
+- **OpenCode** — пишет в `<project>/opencode.json`
+
+По умолчанию `init` регистрирует MCP **в обоих** (если не нужен один — флаг `--target claude` или `--target opencode`).
+
 ## Установка
 
 ### Напрямую из GitHub (без npm publish)
@@ -16,7 +23,7 @@ cd /path/to/your/project
 npx github:Fugguri/mcp-remote-ops init
 ```
 
-### Из npm (когда пакет опубликован)
+### Из npm
 
 ```bash
 cd /path/to/your/project
@@ -30,18 +37,62 @@ npm install -g github:Fugguri/mcp-remote-ops
 mcp-remote-ops-init /path/to/your/project
 ```
 
+### Опции CLI
+
+```
+init [project_path] [options]
+
+  --yes, -y                 не задавать вопросов, использовать только данные из .env
+  --target claude           регистрировать только для Claude Code
+  --target opencode         регистрировать только для OpenCode
+  --target both             регистрировать для обоих (default)
+```
+
 ## Что делает init
 
 1. Создаёт папку `.mcp-remote-ops/` в корне проекта
 2. Если есть `.env.make` или `.env` — парсит `SERVER_*` / `DB_*` как дефолты
-3. **Интерактивно опрашивает** недостающие поля: SSH host/user/port, метод аутентификации (пароль или ключ), параметры БД
+3. **Интерактивно опрашивает** недостающие поля: SSH host/user/port, метод аутентификации (пароль или ключ), параметры БД (со скрытым вводом для паролей)
 4. Пишет `.mcp-remote-ops/project.yaml` + `.mcp-remote-ops/secrets.yaml` (последний попадёт в `.gitignore`)
-5. Регистрирует MCP в `.claude/settings.local.json`
+5. Регистрирует MCP в Claude Code и/или OpenCode
 6. Если ранее были `project.yaml`/`secrets.yaml` в корне — переносит в новую папку
 
-Флаг `--yes` (или `-y`) пропускает интерактивные промпты — пишет только то что нашлось в `.env`. Удобно для CI.
+После init — **рестарт твоего AI-инструмента** в этой папке → `remote-ops` появится в списке MCP.
 
-После init: рестарт Claude Code → `/mcp` покажет `remote-ops`.
+## Ручная регистрация (если init не подошёл)
+
+### Claude Code
+
+`<project>/.claude/settings.local.json`:
+
+```json
+{
+  "mcpServers": {
+    "remote-ops": {
+      "command": "node",
+      "args": ["/абсолютный/путь/до/dist/server.js"],
+      "env": { "PROJECT_PATH": "/абсолютный/путь/до/проекта" }
+    }
+  }
+}
+```
+
+### OpenCode
+
+`<project>/opencode.json`:
+
+```json
+{
+  "mcp": {
+    "remote-ops": {
+      "type": "local",
+      "command": ["node", "/абсолютный/путь/до/dist/server.js"],
+      "enabled": true,
+      "environment": { "PROJECT_PATH": "/абсолютный/путь/до/проекта" }
+    }
+  }
+}
+```
 
 ## Структура файлов в проекте
 
