@@ -127,6 +127,24 @@ function writeYaml(filePath: string, data: unknown) {
   fs.writeFileSync(filePath, YAML.stringify(data, { lineWidth: 0 }));
 }
 
+function ensureGitignore(projectPath: string): string[] {
+  const gitignore = path.join(projectPath, ".gitignore");
+  const lines = fs.existsSync(gitignore)
+    ? fs.readFileSync(gitignore, "utf8").split("\n")
+    : [];
+  const needed: string[] = [];
+  if (!lines.some((l) => l.trim() === "secrets.yaml")) {
+    needed.push("secrets.yaml");
+  }
+  if (!lines.some((l) => l.includes(".mcp-remote-ops/secrets.yaml"))) {
+    needed.push(".mcp-remote-ops/secrets.yaml");
+  }
+  if (needed.length === 0) return [];
+  const prefix = lines.length === 0 || lines.at(-1) === "" ? "" : "\n";
+  fs.appendFileSync(gitignore, prefix + needed.join("\n") + "\n");
+  return needed;
+}
+
 function registerClaude(projectPath: string, packageRoot: string): string {
   const claudeDir = path.join(projectPath, ".claude");
   fs.mkdirSync(claudeDir, { recursive: true });
@@ -325,6 +343,11 @@ async function main() {
     console.log(`\n✓ wrote ${projectFile}`);
     writeYaml(secretsFile, secrets);
     console.log(`✓ wrote ${secretsFile}`);
+  }
+
+  const added = ensureGitignore(target);
+  if (added.length > 0) {
+    console.log(`✓ added to .gitignore: ${added.join(", ")}`);
   }
 
   const packageRoot = findPackageRoot();
